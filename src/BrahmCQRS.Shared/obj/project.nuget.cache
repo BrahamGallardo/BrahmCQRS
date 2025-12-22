@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "BCEmSf0zA4I=",
+  "success": true,
+  "projectFilePath": "D:\\Projects\\Personal\\BrahmCQRS\\src\\BrahmCQRS.Shared\\BrahmCQRS.Shared.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\dunkl\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}

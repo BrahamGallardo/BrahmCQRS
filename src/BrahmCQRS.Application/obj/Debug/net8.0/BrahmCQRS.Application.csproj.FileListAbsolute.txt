@@ -1,0 +1,32 @@
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Application.deps.json
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Application.dll
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Application.pdb
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Domain.dll
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Domain.pdb
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.csproj.AssemblyReference.cache
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.AssemblyInfoInputs.cache
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.AssemblyInfo.cs
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.csproj.CoreCompileInputs.cache
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQR.29FB29B0.Up2Date
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.dll
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\refint\BrahmCQRS.Application.dll
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.pdb
+D:\Projects\Personal\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\ref\BrahmCQRS.Application.dll
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Application.deps.json
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Application.dll
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Application.pdb
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Domain.dll
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Shared.dll
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Domain.pdb
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\bin\Debug\net8.0\BrahmCQRS.Shared.pdb
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.csproj.AssemblyReference.cache
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.GeneratedMSBuildEditorConfig.editorconfig
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.AssemblyInfoInputs.cache
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.AssemblyInfo.cs
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.csproj.CoreCompileInputs.cache
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQR.29FB29B0.Up2Date
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.dll
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\refint\BrahmCQRS.Application.dll
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\BrahmCQRS.Application.pdb
+D:\Projects\Sisu luxury Events\Sisu Luxury Events App\BrahmCQRS\src\BrahmCQRS.Application\obj\Debug\net8.0\ref\BrahmCQRS.Application.dll
