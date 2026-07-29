@@ -1,0 +1,123 @@
+## ---------------------------------------------------------------------------
+## BrahmCQRS - .gitignore (.NET / Visual Studio)
+## ---------------------------------------------------------------------------
+
+# Resultados de compilación
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+[Bb]in/
+[Oo]bj/
+x64/
+x86/
+[Ww][Ii][Nn]32/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+build/
+bld/
+[Ll]og/
+[Ll]ogs/
+
+# Caché y configuración local de Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.vsidx
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Resultados de pruebas
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+coverage*.json
+coverage*.xml
+coverage*.info
+TestResults/
+
+# Caché de restauración de NuGet
+*.nupkg
+*.snupkg
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Archivos intermedios y de análisis
+*.tlog
+*.log
+*.tmp
+*.tmp_proj
+*_wpftmp.csproj
+*.cache
+*.ilk
+*.meta
+*.obj
+*.iobj
+*.pch
+*.pdb
+*.ipdb
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tli
+*.tlh
+*.tmp
+*.vspscc
+*.vssscc
+.builds
+*.pidb
+*.svclog
+*.scc
+
+# Publicación y perfiles
+publish/
+*.[Pp]ublish.xml
+*.azurePubxml
+*.pubxml
+*.pubxml.user
+*.publishproj
+PublishScripts/
+
+# Secretos locales (NUNCA commitear credenciales)
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.local.json
+secrets.json
+*.pfx
+*.p12
+*.key
+
+# Bases de datos locales
+*.mdf
+*.ldf
+*.ndf
+*.sdf
+*.opensdf
+*.db-shm
+*.db-wal
+
+# Sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+*~

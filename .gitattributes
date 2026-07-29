@@ -1,0 +1,54 @@
+## ---------------------------------------------------------------------------
+## Normalización de fin de línea
+## Los archivos de texto se guardan en el repositorio con LF y se entregan al
+## working tree con el fin de línea nativo de la plataforma (CRLF en Windows).
+## Esto evita que Visual Studio marque archivos como modificados solo por CRLF.
+## ---------------------------------------------------------------------------
+
+* text=auto
+
+# Código fuente
+*.cs        text diff=csharp
+*.csproj    text
+*.sln       text eol=crlf
+*.props     text
+*.targets   text
+*.config    text
+*.json      text
+*.xml       text
+*.md        text
+*.yml       text
+*.yaml      text
+*.sql       text
+*.razor     text diff=html
+*.cshtml    text diff=html
+*.css       text diff=css
+*.js        text
+*.ts        text
+*.html      text diff=html
+
+# Scripts: el fin de línea importa para su ejecución
+*.sh        text eol=lf
+*.ps1       text eol=crlf
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+
+# Binarios: nunca convertir
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.gz        binary
+*.7z        binary
+*.dll       binary
+*.exe       binary
+*.pdb       binary
+*.snk       binary
+*.pfx       binary
+*.ttf       binary
+*.woff      binary
+*.woff2     binary
+*.eot       binary
