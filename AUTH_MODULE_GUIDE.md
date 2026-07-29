@@ -24,6 +24,18 @@ El módulo de autenticación de BrahmCQRS proporciona una solución completa y g
 - `RevokedToken` - Tokens invalidados
 - `InvalidCredentialsException` - Credenciales inválidas
 - `EmailNotVerifiedException` - Email no verificado
+- **Specifications** (`Domain/Specifications/Auth/`):
+
+| Spec | Uso |
+|---|---|
+| `GetUserByEmailSpec(email, includeDisabled)` | Login y verificación de duplicados. Incluye `Role` |
+| `GetUserByIdSpec(userId, includeDisabled)` | Refresh y consultas por Id. Incluye `Role` |
+| `GetRevokedTokenSpec(token)` | Comprobación de revocación (`AnyAsync`) |
+| `GetPurgeableRevokedTokensSpec(utcNow, fallbackCutoffUtc)` | Purga de la lista negra |
+| `GetActiveSessionsByUserSpec(userId)` | Cierre de sesiones (logout, cambio de password) |
+| `GetActiveSessionByUserSpec(userId, utcNow)` | Validación de sesión viva |
+
+> ⚠️ **`includeDisabled`**: por diseño de `BaseSpecification`, lo que filtra `Activated` es `IncludeDisabled`, **no** `IgnoreQueryFilters`. Usa `includeDisabled: true` para chequeos de unicidad (un usuario desactivado sigue ocupando el email) y `false` en flujos de autenticación.
 
 ### BrahmCQRS.Shared
 - `PasswordHasher` - Utilidades para hash de contraseñas con BCrypt
@@ -35,8 +47,8 @@ El módulo de autenticación de BrahmCQRS proporciona una solución completa y g
 ### BrahmCQRS.Infrastructure
 - `JwtSettings` - Configuración JWT
 - `TokenService` - Generación y validación de tokens
-- `AuthServiceExtensions` - Registro de servicios
-- **Specifications:** `GetUserByEmailSpec`, `GetRevokedTokenSpec`
+- `AuthServiceExtensions` - Registro del módulo de autenticación (`AddBrahmAuth`)
+- `ServiceCollectionExtensions` - Registro del núcleo CQRS (`AddBrahmCQRSCore`)
 
 ## 🚀 Instalación y Uso
 
@@ -151,23 +163,24 @@ public class MiAppDbContext : BaseDbContext
 
 ```csharp
 using BrahmCQRS.Infrastructure.Extensions;
-using BrahmCQRS.Domain.Contracts.Repositories;
-using BrahmCQRS.Infrastructure.Persistence.Repositories;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Registrar módulo de autenticación BrahmCQRS
-builder.Services.AddBrahmAuth(builder.Configuration);
-
-// Registrar repositorios CQRS
-builder.Services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
-builder.Services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
-
-// Registrar DbContext
+// 1. DbContext propio del proyecto
 builder.Services.AddDbContext<MiAppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddHttpContextAccessor();
+// 2. Puente obligatorio: los repositorios genéricos dependen del tipo base DbContext
+builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<MiAppDbContext>());
+
+// 3. Núcleo BrahmCQRS: repositorios, servicios genéricos, UnitOfWork,
+//    ICurrentUserService, ITimeProvider, IEmailService y IHttpContextAccessor
+builder.Services.AddBrahmCQRSCore(builder.Configuration);
+
+// 4. Módulo de autenticación BrahmCQRS
+builder.Services.AddBrahmAuth(builder.Configuration);
+
 builder.Services.AddControllers();
 
 var app = builder.Build();
@@ -186,6 +199,17 @@ app.Run();
 dotnet ef migrations add InitialAuthModule
 dotnet ef database update
 ```
+
+> ⚠️ **Si vienes de una versión anterior de la librería:** `RevokedToken` incorpora la columna `ExpiresAt` (nullable) para poder purgar la lista negra. Genera una migración:
+>
+> ```bash
+> dotnet ef migrations add AddRevokedTokenExpiresAt
+> dotnet ef database update
+> ```
+>
+> Las filas existentes quedan con `ExpiresAt = NULL` y se purgan por el criterio de respaldo basado en `RevokedAt`.
+
+> 💡 Asegúrate de tener un índice sobre `RevokedToken.Token`: esa columna se consulta en **cada petición autenticada**.
 
 ### 5. Crear controlador de autenticación
 
@@ -345,10 +369,46 @@ public class AuthController : ControllerBase
     "sub": "userId",
     "email": "user@example.com",
     "name": "Nombre Usuario",
-    "role": "roleId",
-    "roleName": "Admin"
+    "role": "roleId",                 // legado: ID numérico del rol
+    "roleName": "Admin",              // legado: nombre del rol
+    "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": "Admin"
 }
 ```
+
+El último es `ClaimTypes.Role` con el **nombre** del rol, lo que hace que la autorización estándar de ASP.NET funcione sin configuración extra:
+
+```csharp
+[Authorize(Roles = "Admin")]
+public IActionResult SoloAdmins() => Ok();
+```
+
+Los claims `role` y `roleName` se conservan por compatibilidad con clientes existentes.
+
+### Sesiones y revocación
+
+- `AuthSession.ExpiresAt` se alinea con la duración real del token (`JwtSettings.AccessTokenExpirationMinutes` o el override de `RoleTimeouts` del rol del usuario).
+- **Logout** revoca el token y desactiva **todas** las sesiones activas del usuario. `AuthSession` no guarda el token ni un identificador de dispositivo, así que no hay logout por dispositivo.
+- **Cambio y reset de contraseña** también desactivan las sesiones activas. Los access tokens ya emitidos no pueden revocarse individualmente porque no se almacenan, pero al cerrar la sesión dejan de validar.
+- **`RefreshTokenAsync(userId)`** exige una sesión activa y no expirada. El `userId` **debe** salir del claim del token autenticado, nunca del body de la petición.
+- **`ValidateTokenAsync(token, userId)`** comprueba revocación **y** sesión viva.
+
+### Purga de tokens revocados
+
+`RevokedToken.ExpiresAt` guarda la expiración natural del token (leída del claim `exp` al revocarlo). `ITokenService.PurgeExpiredRevokedTokensAsync()` desactiva (`Activated = false`) los registros ya expirados:
+
+- Se invoca de forma **oportunista** en cada revocación (logout, cambio de password). Nunca corre en el camino caliente de las peticiones autenticadas.
+- Es público, así que también puedes agendarlo desde un `BackgroundService`, Hangfire o el SQL Agent.
+- Los registros con `ExpiresAt = null` (filas antiguas o tokens no parseables) se purgan cuando `RevokedAt` es más viejo que la duración máxima que la configuración puede emitir. Es conservador: nunca purga antes de tiempo.
+- La purga es **soft delete**: la fila se conserva para auditoría. Si necesitas liberar espacio físico, bórralas desde la base de datos.
+
+### Convención de fechas
+
+| Tipo de campo | Zona | Origen |
+|---|---|---|
+| Seguridad (`AuthSession.ExpiresAt`, `RevokedToken.RevokedAt`/`ExpiresAt`, `nbf`/`exp` del JWT) | **UTC** | `ITimeProvider.GetUtcNow()` |
+| Auditoría (`CreatedDate`, `UpdatedDate`) | Hora del servidor (CST por defecto) | `ITimeProvider.GetServerTime()` en `BaseDbContext` |
+
+Los campos de auditoría nunca se comparan con campos de seguridad, así que las dos convenciones no se cruzan. Los servicios de Auth **no** asignan `CreatedDate` ni `Activated` a mano: los llena `BaseDbContext.SaveChangesAsync`.
 
 ## 🎨 Extensibilidad
 
@@ -407,11 +467,13 @@ services.AddScoped<IQueryService<MiUsuario>, QueryService<MiUsuario>>();
 ### Tabla: auth_revoked_tokens
 ```sql
 - Id (int, PK)
-- Token (string, indexed)
-- RevokedAt (datetime)
+- Token (string, indexed)         -- el índice es crítico: se consulta en cada request
+- RevokedAt (datetime, UTC)
+- ExpiresAt (datetime, UTC, nullable)
 - UserId (int, nullable)
 - Reason (string, nullable)
 - CreatedDate (datetime)
+- Activated (bit)                 -- false = purgado
 ```
 
 ## 🛠️ Dependencias

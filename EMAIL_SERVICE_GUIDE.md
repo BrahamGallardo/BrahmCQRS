@@ -72,6 +72,20 @@ Para entornos de **testing/staging**, establece `EnableTestMode: true`. Esto pre
 
 ### 2. Registrar el Servicio en `Program.cs`
 
+La forma recomendada es `AddBrahmCQRSCore`, que ya registra `IEmailService` y hace el binding de ambas secciones de configuración (`Mail` y `Rutas`):
+
+```csharp
+using BrahmCQRS.Infrastructure.Extensions;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Registra IEmailService + IOptions<SmtpSettings> + IOptions<EmailResourceSettings>
+builder.Services.AddBrahmCQRSCore(builder.Configuration);
+```
+
+<details>
+<summary>Registro manual (solo si no usas <code>AddBrahmCQRSCore</code>)</summary>
+
 ```csharp
 using BrahmCQRS.Application.Contracts.Services;
 using BrahmCQRS.Infrastructure.Configuration;
@@ -79,7 +93,6 @@ using BrahmCQRS.Infrastructure.Services.Email;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configurar Email Service
 builder.Services.Configure<SmtpSettings>(
     builder.Configuration.GetSection(SmtpSettings.SectionName)
 );
@@ -87,9 +100,11 @@ builder.Services.Configure<EmailResourceSettings>(
     builder.Configuration.GetSection(EmailResourceSettings.SectionName)
 );
 builder.Services.AddScoped<IEmailService, EmailService>();
-
-// ... resto de servicios
 ```
+
+</details>
+
+> `AddBrahmCQRSCore` usa `TryAdd`, así que si registras tu propia implementación de `IEmailService` **antes** de llamarlo, la tuya se respeta.
 
 ---
 

@@ -101,9 +101,9 @@ public class QueryRepository<TEntity>(DbContext context) : DisposeRepository<TEn
 
         var query = ApplySpecification(specification, applyPaging: false);
 
-        var count = specification.IsPagingEnabled
-            ? await query.CountAsync(cancellationToken)
-            : 0;
+        // Counted unconditionally: with paging disabled the previous code reported
+        // TotalCount = 0 even though items were returned.
+        var count = await query.CountAsync(cancellationToken);
 
         if (specification.IsPagingEnabled)
         {

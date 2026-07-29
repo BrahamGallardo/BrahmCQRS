@@ -168,12 +168,18 @@ public interface ICommandRepository<T> where T : class { }
 
 ### 2. Inyección de Dependencias
 ```csharp
-// En tu Startup.cs o Program.cs
-services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
-services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
-services.AddScoped(typeof(ICommandService<>), typeof(CommandService<>));
-services.AddScoped(typeof(IQueryService<>), typeof(QueryService<>));
+// En tu Program.cs
+builder.Services.AddDbContext<MiDbContext>(o => o.UseSqlServer(cs));
+
+// Puente obligatorio: los repositorios genéricos dependen del tipo base DbContext
+builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<MiDbContext>());
+
+// Registra repos y servicios genéricos, UnitOfWork, ICurrentUserService,
+// ITimeProvider, IEmailService y IHttpContextAccessor
+builder.Services.AddBrahmCQRSCore(builder.Configuration);
 ```
+
+Todos los registros usan `TryAdd`, así que registrar una implementación propia **antes** de llamar a `AddBrahmCQRSCore` tiene precedencia.
 
 ### 3. Referencias Circulares
 ```

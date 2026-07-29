@@ -4,6 +4,7 @@ using BrahmCQRS.Application.DTOs.Email;
 using BrahmCQRS.Domain.Contracts.Repositories;
 using BrahmCQRS.Domain.Entities;
 using BrahmCQRS.Domain.Exceptions;
+using BrahmCQRS.Domain.Specifications.Auth;
 using BrahmCQRS.Shared.Security;
 
 namespace BrahmCQRS.Application.Services.Auth;
@@ -11,29 +12,41 @@ namespace BrahmCQRS.Application.Services.Auth;
 /// <summary>
 /// Implementation of authentication user service.
 /// </summary>
+/// <remarks>
+/// Password changes and resets close every active session of the user: already issued
+/// access tokens cannot be revoked individually because they are not stored, but
+/// closing the sessions invalidates them through session validation.
+/// </remarks>
 public class AuthUserService : IAuthUserService
 {
     private readonly ICommandRepository<AuthUser> _userCommandRepo;
     private readonly IQueryRepository<AuthUser> _userQueryRepo;
+    private readonly ICommandRepository<AuthSession> _sessionCommandRepo;
+    private readonly IQueryRepository<AuthSession> _sessionQueryRepo;
     private readonly ITokenService _tokenService;
     private readonly IEmailService _emailService;
 
     public AuthUserService(
         ICommandRepository<AuthUser> userCommandRepo,
         IQueryRepository<AuthUser> userQueryRepo,
+        ICommandRepository<AuthSession> sessionCommandRepo,
+        IQueryRepository<AuthSession> sessionQueryRepo,
         ITokenService tokenService,
         IEmailService emailService)
     {
         _userCommandRepo = userCommandRepo;
         _userQueryRepo = userQueryRepo;
+        _sessionCommandRepo = sessionCommandRepo;
+        _sessionQueryRepo = sessionQueryRepo;
         _tokenService = tokenService;
         _emailService = emailService;
     }
 
     public async Task<AuthUserDto> RegisterAsync(RegisterRequestDto request, CancellationToken cancellationToken = default)
     {
-        // Check if email exists
-        var existingUser = await GetByEmailAsync(request.Email, cancellationToken);
+        // Deactivated users must count as duplicates: the Email column is unique,
+        // so skipping them would surface a raw DbUpdateException instead.
+        var existingUser = await GetByEmailInternalAsync(request.Email, includeDisabled: true, cancellationToken);
         if (existingUser != null)
             throw new DuplicateEntityException(nameof(AuthUser), request.Email);
 
@@ -46,9 +59,8 @@ public class AuthUserService : IAuthUserService
             RoleId = request.RoleId,
             PasswordHash = string.Empty,
             EmailVerified = false,
-            HasPassword = false,
-            Activated = true,
-            CreatedDate = DateTime.UtcNow
+            HasPassword = false
+            // Activated / CreatedDate are set automatically by BaseDbContext.
         };
 
         var createdUser = await _userCommandRepo.CreateAsync(user, cancellationToken);
@@ -132,12 +144,16 @@ public class AuthUserService : IAuthUserService
         user.PasswordHash = request.NewPassword.EncryptPassword();
         await _userCommandRepo.UpdateAsync(user, cancellationToken);
 
+        // Already-issued access tokens cannot be revoked individually because they are
+        // not stored, but closing the sessions invalidates them through session validation.
+        await CloseActiveSessionsAsync(userId, cancellationToken);
+
         return MapToDto(user);
     }
 
     public async Task<bool> RequestPasswordResetAsync(string email, CancellationToken cancellationToken = default)
     {
-        var user = await GetByEmailInternalAsync(email, cancellationToken);
+        var user = await GetByEmailInternalAsync(email, includeDisabled: false, cancellationToken);
         if (user == null)
             return false; // Don't reveal if email exists
 
@@ -167,18 +183,22 @@ public class AuthUserService : IAuthUserService
         await _userCommandRepo.UpdateAsync(user, cancellationToken);
         await _tokenService.RevokeTokenAsync(request.Token, userId, "Password reset completed", cancellationToken);
 
+        // Any session opened before the reset must not survive it.
+        await CloseActiveSessionsAsync(userId.Value, cancellationToken);
+
         return MapToDto(user);
     }
 
     public async Task<AuthUserDto?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        var user = await GetByEmailInternalAsync(email, cancellationToken);
+        var user = await GetByEmailInternalAsync(email, includeDisabled: false, cancellationToken);
         return user != null ? MapToDto(user) : null;
     }
 
     public async Task<AuthUserDto?> GetByIdAsync(int userId, CancellationToken cancellationToken = default)
     {
-        var user = await _userQueryRepo.GetByIdAsync(userId, false, cancellationToken);
+        // Uses a specification instead of GetByIdAsync so that RoleName is populated.
+        var user = await _userQueryRepo.FirstOrDefaultAsync(new GetUserByIdSpec(userId), cancellationToken);
         return user != null ? MapToDto(user) : null;
     }
 
@@ -200,10 +220,45 @@ public class AuthUserService : IAuthUserService
         return true;
     }
 
-    private async Task<AuthUser?> GetByEmailInternalAsync(string email, CancellationToken cancellationToken)
+    /// <summary>
+    /// Gets a user entity by email using an indexed database query.
+    /// </summary>
+    /// <param name="email">The email address to match.</param>
+    /// <param name="includeDisabled">Whether deactivated users should also be returned.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The matching user, or null when none exists.</returns>
+    private async Task<AuthUser?> GetByEmailInternalAsync(string email, bool includeDisabled, CancellationToken cancellationToken)
     {
-        var users = await _userQueryRepo.ListAsync(false, cancellationToken);
-        return users.FirstOrDefault(u => u.Email == email);
+        return await _userQueryRepo.FirstOrDefaultAsync(
+            new GetUserByEmailSpec(email, includeDisabled),
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Deactivates every active session of a user.
+    /// </summary>
+    /// <param name="userId">The owning user identifier.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of sessions closed.</returns>
+    private async Task<int> CloseActiveSessionsAsync(int userId, CancellationToken cancellationToken)
+    {
+        var sessions = await _sessionQueryRepo.ListAsync(
+            new GetActiveSessionsByUserSpec(userId),
+            cancellationToken);
+
+        if (sessions.Count == 0)
+            return 0;
+
+        foreach (var session in sessions)
+        {
+            session.IsActive = false;
+        }
+
+        // Only IsActive is flipped: the row is kept queryable for auditing, so
+        // Activated (soft delete) is intentionally left untouched.
+        await _sessionCommandRepo.UpdateRangeAsync(sessions, cancellationToken);
+
+        return sessions.Count;
     }
 
     private static AuthUserDto MapToDto(AuthUser user)

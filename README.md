@@ -25,7 +25,8 @@ BrahmCQRS/
 │   │   │   └── Common/
 │   │   │       └── IPaginatedList.cs
 │   │   ├── Specifications/
-│   │   │   └── BaseSpecification.cs
+│   │   │   ├── BaseSpecification.cs
+│   │   │   └── Auth/                 # Specs del módulo de autenticación
 │   │   └── Exceptions/
 │   │       └── NotFoundException.cs
 │   │
@@ -241,6 +242,47 @@ public class ApplicationDbContext : BaseDbContext
 
 ### 3. Registrar Servicios en el Contenedor de DI
 
+Un solo extension method registra todo el núcleo de la librería:
+
+```csharp
+using BrahmCQRS.Infrastructure.Extensions;
+using Microsoft.EntityFrameworkCore;
+
+// En Program.cs
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// Puente obligatorio: los repositorios genéricos dependen del tipo base DbContext
+builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+// Registra todo lo demás
+builder.Services.AddBrahmCQRSCore(builder.Configuration);
+```
+
+`AddBrahmCQRSCore` registra:
+
+| Servicio | Implementación | Lifetime |
+|---|---|---|
+| `ICommandRepository<>` | `CommandRepository<>` | Scoped |
+| `IQueryRepository<>` | `QueryRepository<>` | Scoped |
+| `ICommandService<>` | `CommandService<>` | Scoped |
+| `IQueryService<>` | `QueryService<>` | Scoped |
+| `IUnitOfWork` | `UnitOfWork` | Scoped |
+| `ICurrentUserService` | `CurrentUserService` | Scoped |
+| `ITimeProvider` | `TimeProvider` | Singleton |
+| `IEmailService` | `EmailService` | Scoped |
+| `IOptions<SmtpSettings>` | sección `Mail` | — |
+| `IOptions<EmailResourceSettings>` | sección `Rutas` | — |
+| `IHttpContextAccessor` | — | Singleton |
+
+Notas:
+
+- Todos los registros usan `TryAdd`, así que si registras tu propia implementación **antes** de llamar a `AddBrahmCQRSCore`, la tuya gana.
+- La zona horaria de auditoría se puede cambiar con el tercer parámetro: `AddBrahmCQRSCore(builder.Configuration, TimeZoneInfo.FindSystemTimeZoneById("Central Standard Time (Mexico)"))`.
+
+<details>
+<summary>Registro manual equivalente (si no quieres usar el extension method)</summary>
+
 ```csharp
 using BrahmCQRS.Application.Contracts.Services;
 using BrahmCQRS.Application.Services.Commands;
@@ -248,12 +290,13 @@ using BrahmCQRS.Application.Services.Queries;
 using BrahmCQRS.Domain.Contracts.Repositories;
 using BrahmCQRS.Infrastructure.Persistence.Repositories;
 
-// En Program.cs o Startup.cs
 services.AddScoped(typeof(ICommandRepository<>), typeof(CommandRepository<>));
 services.AddScoped(typeof(IQueryRepository<>), typeof(QueryRepository<>));
 services.AddScoped(typeof(ICommandService<>), typeof(CommandService<>));
 services.AddScoped(typeof(IQueryService<>), typeof(QueryService<>));
 ```
+
+</details>
 
 ### 4. Crear una Especificación
 

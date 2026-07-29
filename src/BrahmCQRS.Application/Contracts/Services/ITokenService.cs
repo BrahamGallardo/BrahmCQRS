@@ -41,4 +41,29 @@ public interface ITokenService
     /// Checks if a token has been revoked.
     /// </summary>
     Task<bool> IsTokenRevokedAsync(string token, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets the lifetime applied to access tokens issued for the specified role.
+    /// </summary>
+    /// <param name="roleName">The role name, or null to use the default lifetime.</param>
+    /// <returns>
+    /// The configured lifetime, honoring per-role overrides when the role has one.
+    /// </returns>
+    /// <remarks>
+    /// Exposed so that the Application layer can align session expiration with the real
+    /// token lifetime without depending on Infrastructure JWT configuration.
+    /// </remarks>
+    TimeSpan GetAccessTokenLifetime(string? roleName);
+
+    /// <summary>
+    /// Soft deletes blacklist entries whose underlying tokens have already expired.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The number of purged records.</returns>
+    /// <remarks>
+    /// Called opportunistically on every revocation, and safe to call from a scheduled
+    /// maintenance job. Purged rows are kept for auditing but no longer participate in
+    /// revocation checks; delete them physically from the database if disk usage matters.
+    /// </remarks>
+    Task<int> PurgeExpiredRevokedTokensAsync(CancellationToken cancellationToken = default);
 }

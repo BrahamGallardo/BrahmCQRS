@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -58,6 +59,10 @@ public static partial class PasswordHasher
     /// <param name="lengthOfPassword">The desired password length (8-128 characters).</param>
     /// <returns>A randomly generated password matching the specified criteria.</returns>
     /// <exception cref="ArgumentException">Thrown when the password length is invalid or no character sets are selected.</exception>
+    /// <remarks>
+    /// Uses a cryptographically secure random number generator, so the output is safe
+    /// to use as an initial or temporary credential.
+    /// </remarks>
     public static string GeneratePassword(
         bool includeLowercase,
         bool includeUppercase,
@@ -85,12 +90,13 @@ public static partial class PasswordHasher
         }
 
         var password = new char[lengthOfPassword];
-        var random = new Random();
         var characterSetString = characterSet.ToString();
 
         for (int characterPosition = 0; characterPosition < lengthOfPassword; characterPosition++)
         {
-            password[characterPosition] = characterSetString[random.Next(characterSetString.Length)];
+            // Cryptographically secure: System.Random is predictable from observed output
+            // and must not seed generated credentials.
+            password[characterPosition] = characterSetString[RandomNumberGenerator.GetInt32(characterSetString.Length)];
 
             bool moreThanTwoIdenticalInARow =
                 characterPosition > MaximumIdenticalConsecutiveChars

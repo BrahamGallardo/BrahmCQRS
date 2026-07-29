@@ -6,6 +6,7 @@ using BrahmCQRS.Infrastructure.Services.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 
 namespace BrahmCQRS.Infrastructure.Extensions;
@@ -43,6 +44,10 @@ public static class AuthServiceExtensions
             throw new InvalidOperationException("JWT Audience is required");
 
         services.AddSingleton(jwtSettings);
+
+        // TokenService and SessionService depend on ITimeProvider. TryAdd keeps
+        // AddBrahmCQRSCore (or a custom registration) authoritative when present.
+        services.TryAddSingleton<ITimeProvider>(_ => new Services.TimeProvider());
 
         // Register auth services
         services.AddScoped<ISessionService, SessionService>();
